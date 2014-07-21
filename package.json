@@ -1,0 +1,13 @@
+{
+  "name": "ModPlayer.js",
+  "version": "0.0.0",
+  "main": "modplayer.js",
+
+  "devDependencies": {
+    "grunt": "0.4.x",
+    "grunt-contrib-concat": "0.5.x",
+    "grunt-contrib-uglify": "0.5.x",
+    "grunt-contrib-watch" : "0.6.x",
+    "grunt-sync-pkg": "0.1.x"
+  }
+}
