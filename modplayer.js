@@ -13,20 +13,18 @@
     mp.util.extend(this, mp.util.parseMod(new Int8Array(buffer)));
   }
 
-  mp = ModPlayer;
+  var previous = win.ModPlayer;
+
+  mp = win.ModPlayer = ModPlayer;
+
+  mp.noConflict = function () {
+    return (win.ModPlayer = previous, mp);
+  };
 
   mp.get = function (url, done) {
     mp.util.get(url, 'arraybuffer', function (err, res) {
       done(err, err ? null : new ModPlayer(res));
     });
-  };
-
-  var previous = win.ModPlayer;
-
-  win.ModPlayer = mp;
-
-  ModPlayer.noConflict = function () {
-    return (win.ModPlayer = previous, mp);
   };
 
 })(window);
@@ -51,9 +49,23 @@
     return [].concat.apply([], array);
   };
 
+  util.pick = function (obj, keys) {
+    if (! Array.isArray(keys)) {
+      keys = Array.from(arguments).slice(1);
+    }
+
+    return keys.reduce(function (res, key) {
+      return (res[key] = obj[key], res);
+    }, {});
+  };
+
   // Creates a list of integers from 0 to stop, exclusive.
   util.range = function (stop) {
     return Array.apply(null, new Array(stop)).map(function (x, i) { return i; });
+  };
+
+  util.startsWith = function (str, substr) {
+    return (str.indexOf(substr) === 0);
   };
 
   /**
@@ -92,6 +104,31 @@
 
 })(window.ModPlayer);
 
+(function (md) {
+  'use strict';
+
+  mp.util.extend(mp.prototype, {
+
+    getPattern: function (index) {
+      return this.patterns[this.patternOrder[index]];
+    },
+
+    numPatterns: function () {
+      return this.patternOrder.length;
+    },
+
+    toJSON: function () {
+      return mp.util.pick(this, Object.keys(this).filter(isPublic));
+
+      function isPublic(key) {
+        return ! mp.util.startsWith(key, '_');
+      }
+    }
+
+  });
+
+})(window.ModPlayer);
+
 (function (mp) {
   'use strict';
 
@@ -107,36 +144,29 @@
         header = readHeader(iter),
         module;
 
-    module = util.extend(header, {
+    return util.extend(header, {
       patterns:    list(readPattern, header.patterns, iter, header.numChannels),
       instruments: list(readInstrument, header.instruments, iter)
     });
-
-    module.orderedPatterns = module.orders.map(function (x) {
-      return module.patterns[x];
-    });
-
-    delete module.orders;
-    return module;
   }
 
   function readHeader(iter) {
     var header = {
-      id:          iter.str(17),
-      title:       iter.str(20).trim(),
-      tracker:     iter.step(1).str(20).trim(),
-      ver:         iter.word(),
-      orders:      iter.step(4).word(),
-      restart:     iter.word(),
-      numChannels: iter.word(),
-      patterns:    iter.word(),
-      instruments: iter.word(),
-      freqTable:  (iter.word() & 1) ? 'linear' : 'amiga',
-      tempo:       iter.word(),
-      speed:       iter.word()
+      id:           iter.str(17),
+      title:        iter.str(20).trim(),
+      tracker:      iter.step(1).str(20).trim(),
+      ver:          iter.word(),
+      patternOrder: iter.step(4).word(),
+      restart:      iter.word(),
+      numChannels:  iter.word(),
+      patterns:     iter.word(),
+      instruments:  iter.word(),
+      freqTable:   (iter.word() & 1) ? 'linear' : 'amiga',
+      tempo:        iter.word(),
+      speed:        iter.word()
     };
 
-    header.orders = util.range(256).map(iter.byte).slice(0, header.orders);
+    header.patternOrder = util.range(256).map(iter.byte).slice(0, header.patternOrder);
     return header;
   }
 

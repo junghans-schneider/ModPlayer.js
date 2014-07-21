@@ -13,36 +13,29 @@
         header = readHeader(iter),
         module;
 
-    module = util.extend(header, {
+    return util.extend(header, {
       patterns:    list(readPattern, header.patterns, iter, header.numChannels),
       instruments: list(readInstrument, header.instruments, iter)
     });
-
-    module.orderedPatterns = module.orders.map(function (x) {
-      return module.patterns[x];
-    });
-
-    delete module.orders;
-    return module;
   }
 
   function readHeader(iter) {
     var header = {
-      id:          iter.str(17),
-      title:       iter.str(20).trim(),
-      tracker:     iter.step(1).str(20).trim(),
-      ver:         iter.word(),
-      orders:      iter.step(4).word(),
-      restart:     iter.word(),
-      numChannels: iter.word(),
-      patterns:    iter.word(),
-      instruments: iter.word(),
-      freqTable:  (iter.word() & 1) ? 'linear' : 'amiga',
-      tempo:       iter.word(),
-      speed:       iter.word()
+      id:           iter.str(17),
+      title:        iter.str(20).trim(),
+      tracker:      iter.step(1).str(20).trim(),
+      ver:          iter.word(),
+      patternOrder: iter.step(4).word(),
+      restart:      iter.word(),
+      numChannels:  iter.word(),
+      patterns:     iter.word(),
+      instruments:  iter.word(),
+      freqTable:   (iter.word() & 1) ? 'linear' : 'amiga',
+      tempo:        iter.word(),
+      speed:        iter.word()
     };
 
-    header.orders = util.range(256).map(iter.byte).slice(0, header.orders);
+    header.patternOrder = util.range(256).map(iter.byte).slice(0, header.patternOrder);
     return header;
   }
 

@@ -18,9 +18,23 @@
     return [].concat.apply([], array);
   };
 
+  util.pick = function (obj, keys) {
+    if (! Array.isArray(keys)) {
+      keys = Array.from(arguments).slice(1);
+    }
+
+    return keys.reduce(function (res, key) {
+      return (res[key] = obj[key], res);
+    }, {});
+  };
+
   // Creates a list of integers from 0 to stop, exclusive.
   util.range = function (stop) {
     return Array.apply(null, new Array(stop)).map(function (x, i) { return i; });
+  };
+
+  util.startsWith = function (str, substr) {
+    return (str.indexOf(substr) === 0);
   };
 
   /**
