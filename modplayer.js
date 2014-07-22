@@ -314,21 +314,21 @@
 
   function readSample(iter) {
     var sample = {
-      data:      iter.dword(),
-      loopStart: iter.dword(),
-      loopEnd:   iter.dword(),
-      volume:    iter.byte(),
-      finetune:  iter.byte(true),
-      loopType:  iter.byte(),
-      panning:   iter.byte(),
-      relnote:   iter.byte(true),
-      name:      iter.step(1).str(22).trim()
+      data:       iter.dword(),
+      loopStart:  iter.dword(),
+      loopLength: iter.dword(),
+      volume:     iter.byte(),
+      finetune:   iter.byte(true),
+      loopType:   iter.byte(),
+      panning:    iter.byte(),
+      relnote:    iter.byte(true),
+      name:       iter.step(1).str(22).trim()
     };
 
     var loopType = (sample.loopType & 3);
 
-    sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
     sample.is16 = !! (sample.loopType & 16);
+    sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
 
     return sample;
   }
@@ -456,13 +456,13 @@
 
   function readSample(iter) {
     var sample = {
-      sampLen:   iter.word_bigEndian() * 2,
-      finetune:  modfinetunes[iter.byte() & 15],
-      volume:    iter.byte(),
-      loopStart: iter.word_bigEndian() * 2,
-      loopEnd:   iter.word_bigEndian() * 2, // TODO loopLen
-      panning:   128,
-      relnote:   0
+      sampLen:    iter.word_bigEndian() * 2,
+      finetune:   modfinetunes[iter.byte() & 15],
+      volume:     iter.byte(),
+      loopStart:  iter.word_bigEndian() * 2,
+      loopLength: iter.word_bigEndian() * 2,
+      panning:    128,
+      relnote:    0
     };
 
     sample.loopType = sample.loopEnd > 2 ? 'forward' : null;

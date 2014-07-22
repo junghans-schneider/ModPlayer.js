@@ -138,8 +138,8 @@
 
     var loopType = (sample.loopType & 3);
 
-    sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
     sample.is16 = !! (sample.loopType & 16);
+    sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
 
     return sample;
   }
