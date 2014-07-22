@@ -30,6 +30,8 @@
     var iter = { pos: pos, step: step, str: str },
         numbers = { byte: 1, word: 2, dword: 4 };
 
+    iter.word_bigEndian = word_bigEndian;
+
     Object.keys(numbers).forEach(function (key, length) {
       iter[key] = int.bind(null, numbers[key]);
     });
@@ -66,6 +68,10 @@
 
       offset += length;
       return res;
+    }
+
+    function word_bigEndian() {
+      return ((iter.byte() << 8) + iter.byte());
     }
   };
 

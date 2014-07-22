@@ -140,6 +140,8 @@
     var iter = { pos: pos, step: step, str: str },
         numbers = { byte: 1, word: 2, dword: 4 };
 
+    iter.word_bigEndian = word_bigEndian;
+
     Object.keys(numbers).forEach(function (key, length) {
       iter[key] = int.bind(null, numbers[key]);
     });
@@ -176,6 +178,10 @@
 
       offset += length;
       return res;
+    }
+
+    function word_bigEndian() {
+      return ((iter.byte() << 8) + iter.byte());
     }
   };
 
@@ -378,56 +384,7 @@
       tempo: 6
     };
 
-    var instruments = mp.util.range(31).map(function () {
-      var instrument = {
-        name: iter.str(22).trim()
-      };
-
-
-      var sample = {
-        sampLen: beWord(iter) * 2,
-        finetune: modfinetunes[iter.byte() & 15],
-        volume: iter.byte(),
-        loopStart: beWord(iter),
-        panning: 128
-      };
-
-      var loopLen = beWord(iter) * 2;
-
-      sample.loopEnd = sample.loopStart + loopLen;
-      sample.loopType = loopLen > 2 ? 'forward' : null;
-
-      var zero = mp.util.constant(0);
-
-      if (sample.sampLen > 2) {
-        mp.util.extend(instrument, {
-          sampleMapping:                 util.range(96).map(zero),
-          volumeEnvelope:                util.range(24).map(zero),
-          panningEnvelope:               util.range(24).map(zero),
-          volumeEnvelopePoints:          0,
-          panningEnvelopePoints:         0,
-          volumeEnvelopeSustainPoint:    0,
-          volumeEnvelopeLoopStartPoint:  0,
-          volumeEnvelopeLoopEndPoint:    0,
-          panningEnvelopeSustainPoint:   0,
-          panningEnvelopeLoopStartPoint: 0,
-          panningEnvelopeLoopEndPoint:   0,
-          volumeType:                    0,
-          panningType:                   0,
-          vibratoType:                   0,
-          vibratoSweep:                  0,
-          vibratoDepth:                  0,
-          vibratoRate:                   0,
-          volumeFadeOut:                 0
-        });
-
-        instrument.samples = [ sample ];
-      }
-
-      return instrument;
-    });
-
-    header.instruments = instruments;
+    header.instruments = list(readInstrument, 31, iter);
 
     var numOrders = iter.byte();
 
@@ -437,7 +394,7 @@
 
     header.patternOrder = patterns.slice(0, numOrders);
     header.id = iter.str(4);
-    header.numChannels = channels(header.id);
+    header.numChannels = numChannels(header.id);
 
     var numPatterns = Math.max.apply(null, patterns);
 
@@ -490,6 +447,68 @@
     return header;
   }
 
+  function readInstrument(iter) {
+    var instrument = {},
+        name = iter.str(22).trim(),
+        sample = readSample(iter);
+
+    if (sample.sampLen > 2) {
+      var zero = mp.util.constant(0);
+
+      // dummy data
+      instrument = {
+        sampleMapping:                 util.range(96).map(zero),
+        volumeEnvelope:                util.range(24).map(zero),
+        panningEnvelope:               util.range(24).map(zero),
+        volumeEnvelopePoints:          0,
+        panningEnvelopePoints:         0,
+        volumeEnvelopeSustainPoint:    0,
+        volumeEnvelopeLoopStartPoint:  0,
+        volumeEnvelopeLoopEndPoint:    0,
+        panningEnvelopeSustainPoint:   0,
+        panningEnvelopeLoopStartPoint: 0,
+        panningEnvelopeLoopEndPoint:   0,
+        volumeType:                    0,
+        panningType:                   0,
+        vibratoType:                   0,
+        vibratoSweep:                  0,
+        vibratoDepth:                  0,
+        vibratoRate:                   0,
+        volumeFadeOut:                 0
+      };
+
+      instrument.samples = [ sample ];
+    }
+
+    instrument.name = name;
+    return instrument;
+  }
+
+  function numChannels(id) {
+    return ({ 'M.K.': 4, 'M!K!': 4, 'FLT4': 4, 'FLT8': 8, 'OKTA': 8, 'OCTA': 8, 'FA08': 8, 'CD81': 8 })[id] || parseInt(/(\d+)CH/.exec(id)[1], 10);
+  }
+
+  var modfinetunes = [ 0, 16, 32, 48, 64, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16 ];
+
+  function readSample(iter) {
+    var sample = {
+      sampLen:   iter.word_bigEndian() * 2,
+      finetune:  modfinetunes[iter.byte() & 15],
+      volume:    iter.byte(),
+      loopStart: iter.word_bigEndian(),
+      panning:   128
+    };
+
+    var loopLen = iter.word_bigEndian() * 2;
+
+    sample.loopEnd = sample.loopStart + loopLen;
+    sample.loopType = loopLen > 2 ? 'forward' : null;
+
+    return sample;
+  }
+
+  var periods = [ 1712, 1616, 1524, 1440, 1356, 1280, 1208, 1140, 1076, 1016, 960, 907 ];
+
   function amigaPeriodToNote(period) {
     for (var y = 0; y < 120; y++) {
       var per = (periods[y%12]*16>>((y/12)))>>2;
@@ -502,16 +521,11 @@
     return 0;
   }
 
-  function beWord(iter) {
-    return ((iter.byte() << 8) + iter.byte());
-  }
-
-  var modfinetunes = [ 0, 16, 32, 48, 64, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16 ];
-
-  var periods = [ 1712, 1616, 1524, 1440, 1356, 1280, 1208, 1140, 1076, 1016, 960, 907 ];
-
-  function channels(id) {
-    return ({ 'M.K.': 4, 'M!K!': 4, 'FLT4': 4, 'FLT8': 8, 'OKTA': 8, 'OCTA': 8, 'FA08': 8, 'CD81': 8 })[id] || parseInt(/(\d+)CH/.exec(id)[1], 10);
+  function list(read, n, iter) {
+    var args = Array.from(arguments).slice(2);
+    return util.range(n).map(function () {
+      return read.apply(this, args);
+    });
   }
 
 })(window.ModPlayer);
