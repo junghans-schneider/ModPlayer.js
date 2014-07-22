@@ -18,8 +18,10 @@ module.exports = function (grunt) {
     },
 
     uglify: {
-      files: {
-        'modplayer.min.js': '<%= src %>'
+      prod: {
+        files: {
+          'modplayer.min.js': '<%= src %>'
+        }
       }
     },
 
