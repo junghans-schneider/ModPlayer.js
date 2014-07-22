@@ -6,8 +6,9 @@ module.exports = function (grunt) {
       'src/index.js',
       'src/util.js',
       'src/format.js',
-      'src/format/*.js',
-      'src/*.js'
+      'src/format/parseXModule.js',
+      'src/format/parsePTModule.js',
+      'src/ModPlayer.js'
     ],
 
     concat: {

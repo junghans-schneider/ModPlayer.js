@@ -30,7 +30,7 @@
         finetune: modfinetunes[iter.byte() & 15],
         volume: iter.byte(),
         loopStart: beWord(iter),
-        panning: 0x80
+        panning: 128
       };
 
       var loopLen = beWord(iter) * 2;

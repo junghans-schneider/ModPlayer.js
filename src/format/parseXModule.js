@@ -119,13 +119,13 @@
     return instrument;
 
     function addData(sample) {
-      return (sample.data = readSampleData(iter, sample.sampLen, sample.is16), sample);
+      return (sample.data = readSampleData(iter, sample.data, sample.is16), sample);
     }
   }
 
   function readSample(iter) {
     var sample = {
-      sampLen:   iter.dword(),
+      data:      iter.dword(),
       loopStart: iter.dword(),
       loopEnd:   iter.dword(),
       volume:    iter.byte(),
@@ -136,21 +136,22 @@
       name:      iter.step(1).str(22).trim()
     };
 
+    var loopType = (sample.loopType & 3);
+
+    sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
     sample.is16 = !! (sample.loopType & 16);
-    // var loopType = (sample.loopType & 3);
-    // sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
 
     return sample;
   }
 
-  function readSampleData(iter, sampLen, is16) {
+  function readSampleData(iter, length, is16) {
     if (is16) {
-      sampLen /= 2;
+      length /= 2;
     }
 
     var next = is16 ? iter.word : iter.byte, value = 0;
 
-    return util.range(sampLen).map(function () {
+    return util.range(length).map(function () {
       value +=  next();
       value &= (is16 ? 0xffff : 0xff);
 
