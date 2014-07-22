@@ -10,7 +10,7 @@
   var mp;
 
   function ModPlayer(buffer) {
-    mp.util.extend(this, mp.util.parseMod(new Int8Array(buffer)));
+    mp.util.extend(this, mp.format.parseModule(new Int8Array(buffer)));
   }
 
   var previous = win.ModPlayer;

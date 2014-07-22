@@ -10,7 +10,7 @@
   var mp;
 
   function ModPlayer(buffer) {
-    mp.util.extend(this, mp.util.parseMod(new Int8Array(buffer)));
+    mp.util.extend(this, mp.format.parseModule(new Int8Array(buffer)));
   }
 
   var previous = win.ModPlayer;
@@ -33,6 +33,10 @@
   'use strict';
 
   var util = mp.util = {};
+
+  util.constant = function (value) {
+    return function () { return value; };
+  };
 
   // Copies all of the properties in the source object over to
   // the destination object, and returns the destination object.
@@ -107,25 +111,73 @@
 (function (mp) {
   'use strict';
 
-  mp.util.extend(mp.prototype, {
+  var format = mp.format = {},
+      util = mp.util;
 
-    getPattern: function (index) {
-      return this.patterns[this.patternOrder[index]];
-    },
+  var parsers = [];
 
-    numPatterns: function () {
-      return this.patternOrder.length;
-    },
+  format.register = function (parse, name) {
+    parsers.push(parse);
 
-    toJSON: function () {
-      return mp.util.pick(this, Object.keys(this).filter(isPublic));
+    if (name) {
+      format['parse' + name] = parse;
+    }
+  };
 
-      function isPublic(key) {
-        return ! mp.util.startsWith(key, '_');
-      }
+  format.parseModule = function (data) {
+    var res = null, i = 0;
+
+    while (! res && i < parsers.length) {
+      res = parsers[i++](data);
     }
 
-  });
+    return res;
+  };
+
+  format.bytesIter = function (bytes, offset) {
+    offset = offset || 0;
+
+    var iter = { pos: pos, step: step, str: str },
+        numbers = { byte: 1, word: 2, dword: 4 };
+
+    Object.keys(numbers).forEach(function (key, length) {
+      iter[key] = int.bind(null, numbers[key]);
+    });
+
+    return iter;
+
+    // Returns the current offset
+    function pos() {
+      return offset;
+    }
+
+    // Move the offset without reading something
+    function step(n) {
+      offset += Math.abs(n);
+      return iter;
+    }
+
+    // Read a string with the given length
+    function str(length) {
+      return String.fromCharCode.apply(null, bytes.subarray(offset, offset += length));
+    }
+
+    // Assemble an integer out of `length` bytes
+    function int(length, signed) {
+      signed = (signed === true);
+
+      var res = util.range(length).reduce(function (res, i) {
+        var byte = bytes[offset + i];
+        if (! signed || i + 1 === length) {
+          byte &= 0xff;
+        }
+        return res + (byte << (8 * i));
+      }, 0);
+
+      offset += length;
+      return res;
+    }
+  };
 
 })(window.ModPlayer);
 
@@ -134,13 +186,17 @@
 
   var util = mp.util;
 
-  util.parseMod = parseModule;
+  mp.format.register(parseXModule, 'XModule');
 
-  // Format documentation:
+  // Format specification:
   // ftp://ftp.modland.com/pub/documents/format_documentation/FastTracker%202%20v2.04%20%28.xm%29.html
 
-  function parseModule(data) {
-    var iter = bytesIter(data),
+  function parseXModule(data) {
+    if (! isXModule(data)) {
+      return null;
+    }
+
+    var iter = mp.format.bytesIter(data),
         header = readHeader(iter),
         module;
 
@@ -148,6 +204,10 @@
       patterns:    list(readPattern, header.patterns, iter, header.numChannels),
       instruments: list(readInstrument, header.instruments, iter)
     });
+  }
+
+  function isXModule(data) {
+    return (mp.format.bytesIter(data).str(17) === 'Extended Module: ');
   }
 
   function readHeader(iter) {
@@ -260,6 +320,9 @@
     };
 
     sample.is16 = !! (sample.loopType & 16);
+    // var loopType = (sample.loopType & 3);
+    // sample.loopType = loopType ? (loopType === 1 ? 'forward' : 'ping-pong') : null;
+
     return sample;
   }
 
@@ -284,56 +347,36 @@
     });
   }
 
-  function bytesIter(bytes, offset) {
-    offset = offset || 0;
-
-    var iter = { pos: pos, step: step, str: str },
-        numbers = { byte: 1, word: 2, dword: 4 };
-
-    Object.keys(numbers).forEach(function (key, length) {
-      iter[key] = int.bind(null, numbers[key]);
-    });
-
-    return iter;
-
-    // Returns the current offset
-    function pos() {
-      return offset;
-    }
-
-    // Move the offset without reading something
-    function step(n) {
-      offset += Math.abs(n);
-      return iter;
-    }
-
-    // Read a string with the given length
-    function str(length) {
-      return String.fromCharCode.apply(null, bytes.subarray(offset, offset += length));
-    }
-
-    // Assemble an integer out of `length` bytes
-    function int(length, signed) {
-      signed = (signed === true);
-
-      var res = util.range(length).reduce(function (res, i) {
-        var byte = bytes[offset + i];
-        if (! signed || i + 1 === length) {
-          byte &= 0xff;
-        }
-        return res + (byte << (8 * i));
-      }, 0);
-
-      offset += length;
-      return res;
-    }
-  }
-
   function list(read, n, iter) {
     var args = Array.from(arguments).slice(2);
     return util.range(n).map(function () {
       return read.apply(this, args);
     });
   }
+
+})(window.ModPlayer);
+
+(function (mp) {
+  'use strict';
+
+  mp.util.extend(mp.prototype, {
+
+    getPattern: function (index) {
+      return this.patterns[this.patternOrder[index]];
+    },
+
+    numPatterns: function () {
+      return this.patternOrder.length;
+    },
+
+    toJSON: function () {
+      return mp.util.pick(this, Object.keys(this).filter(isPublic));
+
+      function isPublic(key) {
+        return ! mp.util.startsWith(key, '_');
+      }
+    }
+
+  });
 
 })(window.ModPlayer);

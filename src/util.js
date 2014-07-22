@@ -3,6 +3,10 @@
 
   var util = mp.util = {};
 
+  util.constant = function (value) {
+    return function () { return value; };
+  };
+
   // Copies all of the properties in the source object over to
   // the destination object, and returns the destination object.
   util.extend = function (dest, src) {

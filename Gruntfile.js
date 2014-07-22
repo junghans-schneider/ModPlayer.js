@@ -5,6 +5,8 @@ module.exports = function (grunt) {
     src: [
       'src/index.js',
       'src/util.js',
+      'src/format.js',
+      'src/format/*.js',
       'src/*.js'
     ],
 
