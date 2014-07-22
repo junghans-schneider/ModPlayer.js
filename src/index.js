@@ -7,23 +7,20 @@
     };
   }
 
-  var mp;
+  var previous = win.mp, mp;
 
-  function ModPlayer(buffer) {
-    mp.util.extend(this, mp.format.parseModule(new Int8Array(buffer)));
-  }
-
-  var previous = win.ModPlayer;
-
-  mp = win.ModPlayer = ModPlayer;
+  mp = win.mp = {};
 
   mp.noConflict = function () {
-    return (win.ModPlayer = previous, mp);
+    return (win.mp = previous, mp);
   };
 
-  mp.get = function (url, done) {
+  mp.get = function (url, args, done) {
+    args = Array.from(arguments).slice(1);
+    done = args.pop();
+
     mp.util.get(url, 'arraybuffer', function (err, res) {
-      done(err, err ? null : new ModPlayer(res));
+      done(err, err ? null : mp.module.apply(null, [ res ].concat(args)));
     });
   };
 

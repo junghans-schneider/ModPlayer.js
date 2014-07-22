@@ -172,4 +172,4 @@
     });
   }
 
-})(window.ModPlayer);
+})(window.mp);

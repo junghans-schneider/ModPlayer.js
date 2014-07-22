@@ -75,4 +75,4 @@
     }
   };
 
-})(window.ModPlayer);
+})(window.mp);

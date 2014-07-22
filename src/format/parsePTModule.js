@@ -155,4 +155,4 @@
     });
   }
 
-})(window.ModPlayer);
+})(window.mp);

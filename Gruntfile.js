@@ -8,7 +8,7 @@ module.exports = function (grunt) {
       'src/format.js',
       'src/format/parseXModule.js',
       'src/format/parsePTModule.js',
-      'src/ModPlayer.js'
+      'src/*.js'
     ],
 
     concat: {
