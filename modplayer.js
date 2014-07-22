@@ -104,7 +104,7 @@
 
 })(window.ModPlayer);
 
-(function (md) {
+(function (mp) {
   'use strict';
 
   mp.util.extend(mp.prototype, {
