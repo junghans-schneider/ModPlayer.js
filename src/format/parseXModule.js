@@ -125,15 +125,15 @@
 
   function readSample(iter) {
     var sample = {
-      data:      iter.dword(),
-      loopStart: iter.dword(),
-      loopEnd:   iter.dword(),
-      volume:    iter.byte(),
-      finetune:  iter.byte(true),
-      loopType:  iter.byte(),
-      panning:   iter.byte(),
-      relnote:   iter.byte(true),
-      name:      iter.step(1).str(22).trim()
+      data:       iter.dword(),
+      loopStart:  iter.dword(),
+      loopLength: iter.dword(),
+      volume:     iter.byte(),
+      finetune:   iter.byte(true),
+      loopType:   iter.byte(),
+      panning:    iter.byte(),
+      relnote:    iter.byte(true),
+      name:       iter.step(1).str(22).trim()
     };
 
     var loopType = (sample.loopType & 3);
