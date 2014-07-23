@@ -14,8 +14,7 @@
     }
 
     var iter = mp.format.bytesIter(data),
-        header = readHeader(iter),
-        module;
+        header = readHeader(iter);
 
     return util.extend(header, {
       patterns:    list(readPattern, header.patterns, iter, header.numChannels),
