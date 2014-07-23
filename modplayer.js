@@ -187,8 +187,7 @@
     }
 
     var iter = mp.format.bytesIter(data),
-        header = readHeader(iter),
-        module;
+        header = readHeader(iter);
 
     return util.extend(header, {
       patterns:    list(readPattern, header.patterns, iter, header.numChannels),
@@ -364,37 +363,26 @@
     var iter = mp.format.bytesIter(data);
 
     var module = {
-      title: iter.str(20).trim(),
-      speed: 125,
-      tempo: 6
+      title:       iter.str(20).trim(),
+      instruments: list(readInstrument, 31, iter),
+      speed:       125,
+      tempo:       6
     };
 
-    module.instruments = list(readInstrument, 31, iter);
+    var patternOrderLength = iter.byte(),
+        patternOrder = mp.util.range(128).map(iter.step(1).byte),
+        numPatterns = Math.max.apply(null, patternOrder) + 1;
 
-    var numOrders = iter.byte();
-
-    iter.step(1);
-
-    var patterns = mp.util.range(128).map(iter.byte);
-
-    module.patternOrder = patterns.slice(0, numOrders);
-    module.id = iter.str(4);
-    module.numChannels = numChannels(module.id);
-
-    var numPatterns = Math.max.apply(null, patterns) + 1;
-
-    module.patterns = mp.util.range(numPatterns).map(function () {
-      return mp.util.flatten(list(readChannel, 64 * module.numChannels, iter)); // 64 rows
-    });
+    module.patternOrder = patternOrder.slice(0, patternOrderLength);
+    module.id           = iter.str(4);
+    module.numChannels  = numChannels(module.id);
+    module.patterns     = list(readPattern, numPatterns, iter, module.numChannels);
 
     module.instruments.forEach(function (instrument) {
-      if (instrument.samples) {
-        var sample = instrument.samples[0];
-        sample.data = mp.util.range(sample.sampLen).map(function () {
-          var value = iter.byte();
-          if (value >= 128) { value -= 256; }
-          return value;
-        });
+      var sample = instrument.samples && instrument.samples[0];
+
+      if (sample) {
+        sample.data = readSampleData(iter, sample.length);
       }
     });
 
@@ -406,7 +394,7 @@
         name = iter.str(22).trim(),
         sample = readSample(iter);
 
-    if (sample.sampLen > 2) {
+    if (sample.length > 2) {
       var zero = mp.util.constant(0);
 
       // dummy data
@@ -442,7 +430,7 @@
 
   function readSample(iter) {
     var sample = {
-      sampLen:    iter.word_bigEndian() * 2,
+      length:     iter.word_bigEndian() * 2,
       finetune:   modfinetunes[iter.byte() & 15],
       volume:     iter.byte(),
       loopStart:  iter.word_bigEndian() * 2,
@@ -455,8 +443,20 @@
     return sample;
   }
 
+  function readSampleData(iter, length) {
+    return mp.util.range(length).map(function () {
+      var value = iter.byte();
+      if (value >= 128) { value -= 256; }
+      return value;
+    });
+  }
+
   function numChannels(id) {
     return ({ 'M.K.': 4, 'M!K!': 4, 'FLT4': 4, 'FLT8': 8, 'OKTA': 8, 'OCTA': 8, 'FA08': 8, 'CD81': 8 })[id] || parseInt(/(\d+)CH/.exec(id)[1], 10);
+  }
+
+  function readPattern(iter, numChannels) {
+    return mp.util.flatten(list(readChannel, 64 * numChannels, iter)); // 64 rows
   }
 
   function readChannel(iter) {
