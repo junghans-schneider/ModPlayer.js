@@ -17,8 +17,8 @@
         header = readHeader(iter);
 
     return util.extend(header, {
-      patterns:    list(readPattern, header.patterns, iter, header.numChannels),
-      instruments: list(readInstrument, header.instruments, iter)
+      patterns:    iter.list(readPattern, header.patterns, header.numChannels),
+      instruments: iter.list(readInstrument, header.instruments)
     });
   }
 
@@ -53,7 +53,7 @@
     numRows = iter.word();
     iter.step(2);
 
-    return util.flatten(list(readChannel, numRows * numChannels, iter));
+    return util.flatten(iter.list(readChannel, numRows * numChannels));
   }
 
   function readChannel(iter) {
@@ -111,7 +111,7 @@
 
       iter.step(size - (iter.pos() - start));
 
-      instrument.samples = list(readSample, numSamples, iter).map(addData);
+      instrument.samples = iter.list(readSample, numSamples).map(addData);
     }
 
     instrument.name = name;
@@ -161,13 +161,6 @@
       }
 
       return value;
-    });
-  }
-
-  function list(read, n, iter) {
-    var args = Array.from(arguments).slice(2);
-    return util.range(n).map(function () {
-      return read.apply(this, args);
     });
   }
 

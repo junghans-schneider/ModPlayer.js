@@ -27,10 +27,8 @@
   format.bytesIter = function (bytes, offset) {
     offset = offset || 0;
 
-    var iter = { pos: pos, step: step, str: str },
+    var iter = { pos: pos, step: step, str: str, list: list },
         numbers = { byte: 1, word: 2, dword: 4 };
-
-    iter.word_bigEndian = word_bigEndian;
 
     Object.keys(numbers).forEach(function (key, length) {
       iter[key] = int.bind(null, numbers[key]);
@@ -54,6 +52,15 @@
       return String.fromCharCode.apply(null, bytes.subarray(offset, offset += length));
     }
 
+    // Delegates the reading to a function with iter as first argument
+    function list(read, n) {
+      var args = Array.from(arguments).slice(2);
+      args.unshift(iter);
+      return util.range(n).map(function () {
+        return read.apply(this, args);
+      });
+    }
+
     // Assemble an integer out of `length` bytes
     function int(length, signed) {
       signed = (signed === true);
@@ -70,9 +77,6 @@
       return res;
     }
 
-    function word_bigEndian() {
-      return ((iter.byte() << 8) + iter.byte());
-    }
   };
 
 })(window.mp);

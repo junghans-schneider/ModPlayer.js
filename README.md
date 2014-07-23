@@ -73,12 +73,8 @@ The generic `mp.format.parseModule()` function calls each registered parser unti
     iter.step(2).byte(); // just skip the next 2 bytes, then read a byte
     iter.pos();          // get the current position of the iterator
 
-Numbers are read unsigned and as little endian by default. Pass `true` to read signed:
+Numbers are read as little endian and by default unsigned. Pass `true` to read signed, e.g.
 
     iter.word(true);
-
-For words there is also a big endian version:
-
-    iter.word_bigEndian();
 
 Some of the util functions in [`util.js`](https://github.com/junghans-schneider/ModPlayer.js/blob/master/src/util.js) may also help you implementing your format parser.

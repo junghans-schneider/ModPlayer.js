@@ -121,10 +121,8 @@
   format.bytesIter = function (bytes, offset) {
     offset = offset || 0;
 
-    var iter = { pos: pos, step: step, str: str },
+    var iter = { pos: pos, step: step, str: str, list: list },
         numbers = { byte: 1, word: 2, dword: 4 };
-
-    iter.word_bigEndian = word_bigEndian;
 
     Object.keys(numbers).forEach(function (key, length) {
       iter[key] = int.bind(null, numbers[key]);
@@ -148,6 +146,15 @@
       return String.fromCharCode.apply(null, bytes.subarray(offset, offset += length));
     }
 
+    // Delegates the reading to a function with iter as first argument
+    function list(read, n) {
+      var args = Array.from(arguments).slice(2);
+      args.unshift(iter);
+      return util.range(n).map(function () {
+        return read.apply(this, args);
+      });
+    }
+
     // Assemble an integer out of `length` bytes
     function int(length, signed) {
       signed = (signed === true);
@@ -164,9 +171,6 @@
       return res;
     }
 
-    function word_bigEndian() {
-      return ((iter.byte() << 8) + iter.byte());
-    }
   };
 
 })(window.mp);
@@ -190,8 +194,8 @@
         header = readHeader(iter);
 
     return util.extend(header, {
-      patterns:    list(readPattern, header.patterns, iter, header.numChannels),
-      instruments: list(readInstrument, header.instruments, iter)
+      patterns:    iter.list(readPattern, header.patterns, header.numChannels),
+      instruments: iter.list(readInstrument, header.instruments)
     });
   }
 
@@ -226,7 +230,7 @@
     numRows = iter.word();
     iter.step(2);
 
-    return util.flatten(list(readChannel, numRows * numChannels, iter));
+    return util.flatten(iter.list(readChannel, numRows * numChannels));
   }
 
   function readChannel(iter) {
@@ -284,7 +288,7 @@
 
       iter.step(size - (iter.pos() - start));
 
-      instrument.samples = list(readSample, numSamples, iter).map(addData);
+      instrument.samples = iter.list(readSample, numSamples).map(addData);
     }
 
     instrument.name = name;
@@ -337,13 +341,6 @@
     });
   }
 
-  function list(read, n, iter) {
-    var args = Array.from(arguments).slice(2);
-    return util.range(n).map(function () {
-      return read.apply(this, args);
-    });
-  }
-
 })(window.mp);
 
 (function (mp) {
@@ -364,7 +361,7 @@
 
     var module = {
       title:       iter.str(20).trim(),
-      instruments: list(readInstrument, 31, iter),
+      instruments: iter.list(readInstrument, 31),
       speed:       125,
       tempo:       6
     };
@@ -376,7 +373,7 @@
     module.patternOrder = patternOrder.slice(0, patternOrderLength);
     module.id           = iter.str(4);
     module.numChannels  = numChannels(module.id);
-    module.patterns     = list(readPattern, numPatterns, iter, module.numChannels);
+    module.patterns     = iter.list(readPattern, numPatterns, module.numChannels);
 
     module.instruments.forEach(function (instrument) {
       var sample = instrument.samples && instrument.samples[0];
@@ -430,11 +427,11 @@
 
   function readSample(iter) {
     var sample = {
-      length:     iter.word_bigEndian() * 2,
+      length:     bigEndianWord(iter) * 2,
       finetune:   modfinetunes[iter.byte() & 15],
       volume:     iter.byte(),
-      loopStart:  iter.word_bigEndian() * 2,
-      loopLength: iter.word_bigEndian() * 2,
+      loopStart:  bigEndianWord(iter) * 2,
+      loopLength: bigEndianWord(iter) * 2,
       panning:    128,
       relnote:    0
     };
@@ -456,7 +453,7 @@
   }
 
   function readPattern(iter, numChannels) {
-    return mp.util.flatten(list(readChannel, 64 * numChannels, iter)); // 64 rows
+    return mp.util.flatten(iter.list(readChannel, 64 * numChannels)); // 64 rows
   }
 
   function readChannel(iter) {
@@ -499,11 +496,8 @@
     return 0;
   }
 
-  function list(read, n, iter) {
-    var args = Array.from(arguments).slice(2);
-    return util.range(n).map(function () {
-      return read.apply(this, args);
-    });
+  function bigEndianWord(iter) {
+    return ((iter.byte() << 8) + iter.byte());
   }
 
 })(window.mp);
