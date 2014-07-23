@@ -154,7 +154,14 @@
     return util.range(length).map(function () {
       value +=  next();
       value &= (is16 ? 0xffff : 0xff);
-      return value ^ (is16 ? 0x7fff : 0x7f);
+
+      if (is16) {
+        if (value >= 32768) { value -= 65536; }
+      } else {
+        if (value >= 128) { value -= 256; }
+      }
+
+      return value;
     });
   }
 
