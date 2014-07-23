@@ -354,8 +354,6 @@
 
   mp.format.register(parsePTModule, 'PTModule');
 
-  /* !!! This module does not yet work !!! */
-
   // Format specification:
   // http://elektronika.kvalitne.cz/ATMEL/MODplayer3/doc/MOD-FORM.TXT
 
@@ -392,7 +390,11 @@
     module.instruments.forEach(function (instrument) {
       if (instrument.samples) {
         var sample = instrument.samples[0];
-        sample.data = mp.util.range(sample.sampLen).map(iter.byte);
+        sample.data = mp.util.range(sample.sampLen).map(function () {
+          var value = iter.byte();
+          if (value >= 128) { value -= 256; }
+          return value;
+        });
       }
     });
 
