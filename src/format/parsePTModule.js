@@ -42,9 +42,7 @@
       if (instrument.samples) {
         var sample = instrument.samples[0];
         sample.data = mp.util.range(sample.sampLen).map(function () {
-          var value = iter.byte();
-          if (value >= 128) { value -= 256; }
-          return value;
+          return iter.byte() ^ 0xff;
         });
       }
     });

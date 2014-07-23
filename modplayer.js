@@ -327,14 +327,7 @@
     return util.range(length).map(function () {
       value +=  next();
       value &= (is16 ? 0xffff : 0xff);
-
-      if (is16) {
-        if (value >= 32768) { value -= 65536; }
-      } else {
-        if (value >= 128) { value -= 256; }
-      }
-
-      return value;
+      return value ^ (is16 ? 0x7fff : 0x7f);
     });
   }
 
@@ -391,9 +384,7 @@
       if (instrument.samples) {
         var sample = instrument.samples[0];
         sample.data = mp.util.range(sample.sampLen).map(function () {
-          var value = iter.byte();
-          if (value >= 128) { value -= 256; }
-          return value;
+          return iter.byte() ^ 0xff;
         });
       }
     });
