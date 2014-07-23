@@ -3,7 +3,7 @@ ModPlayer.js
 
 JavaScript player for the famous Fasttracker II and Protracker module formats.
 
-[Demo](http://jsfiddle.net/junghans_schneider/vhBja/4/embedded/result/)
+[Demo](http://jsfiddle.net/junghans_schneider/vhBja/embedded/result/)
 
 *Note:* The player is in an early stage of implementation. At the moment there is no API for stopping playback. Also many effects are not implemented, yet.
 
