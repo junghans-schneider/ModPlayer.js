@@ -3,7 +3,7 @@ ModPlayer.js
 
 JavaScript player for the famous Fasttracker II and Protracker module formats.
 
-[Demo](http://jsfiddle.net/junghans_schneider/vhBja/embedded/result/)
+[Demo](http://jsfiddle.net/junghans_schneider/vhBja/3/embedded/result/)
 
 *Note:* The player is in an early stage of implementation. At the moment there is no API for stopping playback. Also many effects are not implemented, yet.
 
@@ -20,7 +20,7 @@ Installation
 Download or install with [Bower](http://bower.io/) package manager:
 
     bower install junghans-schneider/ModPlayer.js
-    
+
 Add a script tag:
 
     <script src="bower_components/ModPlayer.js/modplayer.min.js"></script>
@@ -34,12 +34,12 @@ Examples
 
 	var audioContext = new webkitAudioContext(),
 		module = mp.module(data, audioContext);
-    
+
     module.play(audioContext.destination);
 
-`data` is an [`ArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/API/ArrayBuffer) in this case. You can also use `mp.get()` to load a module from your server:
+`data` is an [`ArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/API/ArrayBuffer) in this case. You can also use `mp.loadModule()` to load a module from your server:
 
-	mp.get('mymodule.xm', audioContext, function (err, module) {
+	mp.loadModule('mymodule.xm', audioContext, function (err, module) {
 		if (err) {
 		    // failed to load module
 		} else {
@@ -57,10 +57,10 @@ There is a simple plugin mechanism for adding support for other module formats. 
 	    if (! isMyModule()) {
 	        return null;
 	    }
-	    
+
 	    var iter = mp.format.bytesIter(data);
 	    var parsedData = readMyModule(iter);
-	    
+
 	    return parsedData;
 	}
 
@@ -70,10 +70,10 @@ The generic `mp.format.parseModule()` function calls each registered parser unti
 	iter.byte();  // read one byte as integer
 	iter.word();  //  ... two bytes
 	iter.dword(); //  ... four bytes
-	
+
 	iter.step(2).byte(); // just skip the next 2 bytes, then read a byte
 	iter.pos();          // get the current position of the iterator
-	
+
 Numbers are read unsigned and as little endian by default. Pass `true` to read signed:
 
     iter.word(true);
