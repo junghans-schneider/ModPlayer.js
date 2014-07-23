@@ -15,7 +15,7 @@
     return (win.mp = previous, mp);
   };
 
-  mp.get = function (url, args, done) {
+  mp.loadModule = function (url, args, done) {
     args = Array.from(arguments).slice(1);
     done = args.pop();
 
