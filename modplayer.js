@@ -917,10 +917,13 @@
 
 })(window.mp);
 
-(function (mp) {
+(function (win, mp) {
   'use strict';
 
   mp.module = function(data, audioContext) {
+    if (! audioContext) {
+      audioContext = new (win.AudioContext || win.webkitAudioContext)();
+    }
 
     data = mp.format.parseModule(new Int8Array(data));
 
@@ -939,12 +942,17 @@
     };
 
     function play(destination, timerCallback) {
-      if (data == null) {
-        return;
-      }
       if (startTime != null) {
         return;
       }
+
+      if (typeof destination === 'function') {
+        timerCallback = destination;
+        destination = null;
+      }
+
+      destination = destination || audioContext.destination;
+
       var masterGain = soundUtil.audioContext.createGain();
       masterGain.gain.value = 0.75;
       masterGain.connect(destination);
@@ -959,7 +967,6 @@
       var processedRows = 0;
       var toCall;
       var playPattern = function() {
-  //console.log("playPattern (playing notes: " + window.playingNotes + ")");
         var now = soundUtil.audioContext.currentTime;
         if (currentPattern == null) {
           currentPattern = mp.pattern(soundUtil, masterGain,
@@ -984,7 +991,7 @@
         }
         var patternDuration = patternTime - startTime;
         var waitTime = patternDuration*0.5 + (startTime - now);
-        window.setTimeout(toCall, waitTime*1000);
+        setTimeout(toCall, waitTime*1000);
         startTime = patternTime;
       };
       var toCall = playPattern;
@@ -1036,7 +1043,7 @@
     };
   }
 
-})(window.mp);
+})(window, window.mp);
 
 (function (mp) {
   'use strict';

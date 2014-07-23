@@ -34,47 +34,44 @@ Examples
 
 **Playback**
 
-	var audioContext = new webkitAudioContext(),
-		module = mp.module(data, audioContext);
-
-    module.play(audioContext.destination);
+    mp.module(data).play();
 
 `data` is an [`ArrayBuffer`](https://developer.mozilla.org/en-US/docs/Web/API/ArrayBuffer) in this case. You can also use `mp.loadModule()` to load a module from your server:
 
-	mp.loadModule('mymodule.xm', audioContext, function (err, module) {
-		if (err) {
-		    // failed to load module
-		} else {
-			module.play(audioContext.destination);
-		}
-	});
+    mp.loadModule('mymodule.xm', function (err, module) {
+    	if (err) {
+    	    // failed to load module
+    	} else {
+    		module.play();
+    	}
+    });
 
 **Adding another module format**
 
 There is a simple plugin mechanism for adding support for other module formats. Just register a parser function which returns null for inadequate input:
 
-	mp.format.register(parseMyModule);
+    mp.format.register(parseMyModule);
 
-	function parseMyModule(data) {
-	    if (! isMyModule()) {
-	        return null;
-	    }
+    function parseMyModule(data) {
+      if (! isMyModule()) {
+        return null;
+      }
 
-	    var iter = mp.format.bytesIter(data);
-	    var parsedData = readMyModule(iter);
+      var iter = mp.format.bytesIter(data);
+      var parsedData = readMyModule(iter); // magic happens here
 
-	    return parsedData;
-	}
+      return parsedData;
+    }
 
 The generic `mp.format.parseModule()` function calls each registered parser until one of them doesn't return `null`, i.e. until one of them parsed the data. `data` is an `Int8Array`. We suggest to use the built-in bytes iterator for reading the data:
 
-	iter.str(17); // read next 17 bytes as string
-	iter.byte();  // read one byte as integer
-	iter.word();  //  ... two bytes
-	iter.dword(); //  ... four bytes
+    iter.str(17); // read next 17 bytes as string
+    iter.byte();  // read one byte as integer
+    iter.word();  //  ... two bytes
+    iter.dword(); //  ... four bytes
 
-	iter.step(2).byte(); // just skip the next 2 bytes, then read a byte
-	iter.pos();          // get the current position of the iterator
+    iter.step(2).byte(); // just skip the next 2 bytes, then read a byte
+    iter.pos();          // get the current position of the iterator
 
 Numbers are read unsigned and as little endian by default. Pass `true` to read signed:
 
