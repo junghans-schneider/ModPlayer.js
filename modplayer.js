@@ -462,24 +462,21 @@
         b3 = iter.byte(),
         b4 = iter.byte();
 
-    var note,ins,eff,notenum = 0;
-    note = ((b1&0xf)<<8)+b2;
-    ins = (b1&0xf0)+(b3>>4);
-    eff = b3&0xf;
+    var note =((b1&0xf)<<8)+b2,
+        ins  = (b1&0xf0)+(b3>>4),
+        fx   =  b3&0xf;
 
     note = amigaPeriodToNote(note);
 
-    // old style modules don't support last effect for:
-    // - portamento up/down
-    // - volume slide
-    if (eff==0x1&&(!b4)) eff = 0;
-    if (eff==0x2&&(!b4)) eff = 0;
-    if (eff==0xA&&(!b4)) eff = 0;
+    if (! b4) {
+      if (fx == 0x1) fx = 0;
+      if (fx == 0x2) fx = 0;
+      if (fx == 0xA) fx = 0;
+      if (fx == 0x5) fx = 0x3;
+      if (fx == 0x6) fx = 0x4;
+    }
 
-    if (eff==0x5&&(!b4)) eff = 0x3;
-    if (eff==0x6&&(!b4)) eff = 0x4;
-
-    return [ note, ins, 0, eff, b4 ];
+    return [ note, ins, 0, fx, b4 ];
   }
 
   var periods = [ 1712, 1616, 1524, 1440, 1356, 1280, 1208, 1140, 1076, 1016, 960, 907 ];
