@@ -42,7 +42,7 @@
       speed:        iter.word()
     };
 
-    header.patternOrder = util.range(256).map(iter.byte).slice(0, header.patternOrder);
+    header.patternOrder = iter.list('byte', 256).slice(0, header.patternOrder);
     return header;
   }
 
@@ -89,9 +89,9 @@
       iter.step(4);
 
       instrument = {
-        sampleMapping:                 util.range(96).map(iter.byte),
-        volumeEnvelope:                util.range(24).map(iter.word),
-        panningEnvelope:               util.range(24).map(iter.word),
+        sampleMapping:                 iter.list('byte', 96),
+        volumeEnvelope:                iter.list('word', 24),
+        panningEnvelope:               iter.list('word', 24),
         volumeEnvelopePoints:          iter.byte(),
         panningEnvelopePoints:         iter.byte(),
         volumeEnvelopeSustainPoint:    iter.byte(),
@@ -148,10 +148,10 @@
       length /= 2;
     }
 
-    var next = is16 ? iter.word : iter.byte, value = 0;
+    var next = is16 ? 'word' : 'byte', value = 0;
 
-    return util.range(length).map(function () {
-      value +=  next();
+    return iter.list(next, length).map(function (next) {
+      value +=  next;
       value &= (is16 ? 0xffff : 0xff);
 
       if (is16) {

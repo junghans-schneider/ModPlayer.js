@@ -22,7 +22,7 @@
     };
 
     var patternOrderLength = iter.byte(),
-        patternOrder = mp.util.range(128).map(iter.step(1).byte),
+        patternOrder = iter.step(1).list('byte', 128),
         numPatterns = Math.max.apply(null, patternOrder) + 1;
 
     module.patternOrder = patternOrder.slice(0, patternOrderLength);
@@ -30,15 +30,16 @@
     module.numChannels  = numChannels(module.id);
     module.patterns     = iter.list(readPattern, numPatterns, module.numChannels);
 
-    module.instruments.forEach(function (instrument) {
+    module.instruments.forEach(addSampleData);
+    return module;
+
+    function addSampleData(instrument) {
       var sample = instrument.samples && instrument.samples[0];
 
       if (sample) {
         sample.data = readSampleData(iter, sample.length);
       }
-    });
-
-    return module;
+    }
   }
 
   function readInstrument(iter) {
@@ -96,10 +97,8 @@
   }
 
   function readSampleData(iter, length) {
-    return mp.util.range(length).map(function () {
-      var value = iter.byte();
-      if (value >= 128) { value -= 256; }
-      return value;
+    return iter.list('byte', length).map(function (value) {
+      return (value < 128) ? value : (value - 256);
     });
   }
 

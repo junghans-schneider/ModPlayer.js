@@ -56,6 +56,7 @@
     function list(read, n) {
       var args = Array.from(arguments).slice(2);
       args.unshift(iter);
+      read = iter[read] || read;
       return util.range(n).map(function () {
         return read.apply(this, args);
       });
