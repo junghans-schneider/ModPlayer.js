@@ -542,31 +542,23 @@
       return panning/255;
     }
 
-    function smoothlySetVolumeAtTime(leftGainNode, rightGainNode,
-                                     state, volume, panning, time, factor) {
-      var volumeLeft = volume*Math.cos(Math.PI/2*panning);
-      var volumeRight = volume*Math.sin(Math.PI/2*panning);
-      if (volumeLeft != state.volumeLeft) {
-        if (state.volumeLeft == null) {
-          leftGainNode.gain.value = 0;
-          soundUtil.smoothlySetValueAtTime(
-            leftGainNode.gain, 0, volumeLeft, time, factor);
-        } else {
-          soundUtil.smoothlySetValueAtTime(
-            leftGainNode.gain, state.volumeLeft, volumeLeft, time, factor);
+    function smoothlySetVolumeAtTime(leftGainNode, rightGainNode, state, volume, panning, time, factor) {
+      var volumeLeft = volume*Math.cos(Math.PI/2*panning),
+          volumeRight = volume*Math.sin(Math.PI/2*panning);
+
+      state.volumeLeft = smoothlySet(leftGainNode.gain, volumeLeft, state.volumeLeft);
+      state.volumeRight = smoothlySet(rightGainNode.gain, volumeRight, state.volumeRight);
+
+      function smoothlySet(gain, volume, oldVolume) {
+        if (volume != oldVolume) {
+          if (oldVolume == null) {
+            gain.value = oldVolume = 0;
+          }
+
+          soundUtil.smoothlySetValueAtTime(gain, oldVolume, volume, time, factor);
         }
-        state.volumeLeft = volumeLeft;
-      }
-      if (volumeRight != state.volumeRight) {
-        if (state.volumeRight == null) {
-          rightGainNode.gain.value = 0;
-          soundUtil.smoothlySetValueAtTime(
-            rightGainNode.gain, 0, volumeRight, time, factor);
-        } else {
-          soundUtil.smoothlySetValueAtTime(
-            rightGainNode.gain, state.volumeRight, volumeRight, time, factor);
-        }
-        state.volumeRight = volumeRight;
+
+        return volume;
       }
     }
 
@@ -828,12 +820,10 @@
       return state;
     }
 
-    function stopNoteAtTime(volumeState, leftGainNode, rightGainNode,
-                            sourceNode, time) {
-      soundUtil.smoothlySetValueAtTime(
-        leftGainNode.gain, volumeState.volumeLeft, 0, time);
-      soundUtil.smoothlySetValueAtTime(
-        rightGainNode.gain, volumeState.volumeRight, 0, time);
+    function stopNoteAtTime(volumeState, leftGainNode, rightGainNode, sourceNode, time) {
+      soundUtil.smoothlySetValueAtTime(leftGainNode.gain, volumeState.volumeLeft, 0, time);
+      soundUtil.smoothlySetValueAtTime(rightGainNode.gain, volumeState.volumeRight, 0, time);
+
       sourceNode.stop(time + soundUtil.smoothingTime);
     }
   };
