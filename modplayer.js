@@ -124,7 +124,7 @@
     var iter = { pos: pos, step: step, str: str, list: list },
         numbers = { byte: 1, word: 2, dword: 4 };
 
-    Object.keys(numbers).forEach(function (key, length) {
+    Object.keys(numbers).forEach(function (key) {
       iter[key] = int.bind(null, numbers[key]);
     });
 
@@ -512,73 +512,8 @@
       samples = instrumentData.samples.map(mp.sample.bind(null, soundUtil.audioContext));
     }
 
-    // prepare volume envelope
-    var envelopePoints = [];
-    var envelopePointCount = instrumentData.volumeEnvelopePoints || 0;
-    var sustainPos = -1;
-    var loopStartPos = -1;
-    var loopEndPos = -1;
-    if (instrumentData.volumeType&1) {
-      var previousPos = -1;
-      var previousValue = 64;
-      for (var i = 0; i < envelopePointCount; ++i) {
-        var pos = instrumentData.volumeEnvelope[i*2];
-        var value = instrumentData.volumeEnvelope[i*2 + 1];
-        for (var j = previousPos + 1; j < pos; ++j) {
-          envelopePoints[j] = previousValue +
-            (value - previousValue)*(j - previousPos)/(pos - previousPos);
-        }
-        envelopePoints[pos] = value;
-        if (instrumentData.volumeEnvelopeSustainPoint == i &&
-            (instrumentData.volumeType&2)) {
-          sustainPos = pos;
-        }
-        if (instrumentData.volumeEnvelopeLoopStartPoint == i &&
-            (instrumentData.volumeType&4)) {
-          loopStartPos = pos;
-        }
-        if (instrumentData.volumeEnvelopeLoopEndPoint == i &&
-            (instrumentData.volumeType&4)) {
-          loopEndPos = pos;
-        }
-        previousPos = pos;
-        previousValue = value;
-      }
-    }
-
-    // prepare panning envelope
-    var panningEnvelopePoints = [];
-    var panningEnvelopePointCount = instrumentData.panningEnvelopePoints || 0;
-    var panningSustainPos = -1;
-    var panningLoopStartPos = -1;
-    var panningLoopEndPos = -1;
-    if (instrumentData.panningType&1) {
-      var previousPos = -1;
-      var previousValue = 32;
-      for (var i = 0; i < panningEnvelopePointCount; ++i) {
-        var pos = instrumentData.panningEnvelope[i*2];
-        var value = instrumentData.panningEnvelope[i*2 + 1];
-        for (var j = previousPos + 1; j < pos; ++j) {
-          panningEnvelopePoints[j] = previousValue +
-            (value - previousValue)*(j - previousPos)/(pos - previousPos);
-        }
-        panningEnvelopePoints[pos] = value;
-        if (instrumentData.panningEnvelopeSustainPoint == i &&
-            (instrumentData.panningType&2)) {
-          panningSustainPos = pos;
-        }
-        if (instrumentData.panningEnvelopeLoopStartPoint == i &&
-            (instrumentData.panningType&4)) {
-          panningLoopStartPos = pos;
-        }
-        if (instrumentData.panningEnvelopeLoopEndPoint == i &&
-            (instrumentData.panningType&4)) {
-          panningLoopEndPos = pos;
-        }
-        previousPos = pos;
-        previousValue = value;
-      }
-    }
+    var volumeEnvelope = prepareEnvelope(instrumentData, 'volume', 64),
+        panningEnvelope = prepareEnvelope(instrumentData, 'panning', 32);
 
     return {
       getSample: getSample,
@@ -592,8 +527,7 @@
     }
 
     function calculateVolume(fadeVolume, noteVolume, envelopeVolume) {
-      var volume = (fadeVolume/fadeVolumeStart)*(noteVolume/64)*(envelopeVolume/64);
-      return volume;
+      return (fadeVolume/fadeVolumeStart)*(noteVolume/64)*(envelopeVolume/64);
     }
 
     function calculatePanning(notePanning, envelopePanning) {
@@ -804,7 +738,7 @@
       if ((instrumentData.panningType&1) == 0) {
         panning = calculatePanning(effectiveNotePanning, 32);
       } else {
-        var envelopePanning = panningEnvelopePoints[state.panningEnvelopePos];
+        var envelopePanning = panningEnvelope.points[state.panningEnvelopePos];
         if (envelopePanning == null) {
           envelopePanning = state.envelopePanning;
         }
@@ -813,10 +747,10 @@
         }
         state.envelopePanning = envelopePanning;
         panning = calculatePanning(effectiveNotePanning, envelopePanning);
-        if (state.panningEnvelopePos != panningSustainPos) {
+        if (state.panningEnvelopePos != panningEnvelope.sustainPos) {
           ++state.panningEnvelopePos;
-          if (state.panningEnvelopePos == panningLoopEndPos) {
-            state.panningEnvelopePos = panningLoopEndPos;
+          if (state.panningEnvelopePos == panningEnvelope.loopEndPos) {
+            state.panningEnvelopePos = panningEnvelope.loopEndPos;
           }
         }
       }
@@ -840,7 +774,7 @@
         smoothlySetVolumeAtTime(leftGainNode, rightGainNode,
                                 state, volume, panning, tickStartTime);
       } else {
-        var envelopeVolume = envelopePoints[state.envelopePos];
+        var envelopeVolume = volumeEnvelope.points[state.envelopePos];
   //if (state.keyOff) envelopeVolume = 0;
   //console.log("envelopeVolume: " + envelopeVolume + "@" + state.envelopePos);
         if (envelopeVolume == null) {
@@ -855,10 +789,10 @@
           state.fadeVolume, effectiveNoteVolume, envelopeVolume);
         smoothlySetVolumeAtTime(leftGainNode, rightGainNode,
                                 state, volume, panning, tickStartTime);
-        if (state.keyOff || state.envelopePos != sustainPos) {
+        if (state.keyOff || state.envelopePos != volumeEnvelope.sustainPos) {
           ++state.envelopePos;
-          if (state.envelopePos == loopEndPos) {
-            state.envelopePos = loopStartPos;
+          if (state.envelopePos == volumeEnvelope.loopEndPos) {
+            state.envelopePos = volumeEnvelope.loopStartPos;
           }
         }
         if (state.keyOff) {
@@ -901,10 +835,53 @@
       soundUtil.smoothlySetValueAtTime(
         rightGainNode.gain, volumeState.volumeRight, 0, time);
       sourceNode.stop(time + soundUtil.smoothingTime);
-  --window.playingNotes;
     }
   };
 
+  function prepareEnvelope(instrument, envelopeType, startValue) {
+    var res = {
+      points:       [],
+      sustainPos:   -1,
+      loopStartPos: -1,
+      loopEndPos:   -1
+    };
+
+    var type           = get('Type'),
+        envelope       = get('Envelope'),
+        envelopePoints = get('EnvelopePoints') || 0,
+        sustainPoint   = get('EnvelopeSustainPoint'),
+        loopStartPoint = get('EnvelopeLoopStartPoint'),
+        loopEndPoint   = get('EnvelopeLoopEndPoint');
+
+    if (type&1) {
+      var previousPos = -1,
+          previousValue = startValue;
+
+      for (var i = 0; i < envelopePoints; ++i) {
+        var pos   = envelope[i*2],
+            value = envelope[i*2 + 1];
+
+        for (var j = previousPos + 1; j < pos; ++j) {
+          res.points[j] = previousValue + (value - previousValue) * (j - previousPos) / (pos - previousPos);
+        }
+
+        res.points[pos] = value;
+
+        if (sustainPoint   == i && (type&2)) res.sustainPos = pos;
+        if (loopStartPoint == i && (type&4)) res.loopStartPos = pos;
+        if (loopEndPoint   == i && (type&4)) res.loopEndPos = pos;
+
+        previousPos = pos;
+        previousValue = value;
+      }
+    }
+
+    return res;
+
+    function get(prop) {
+      return instrument[envelopeType + prop];
+    }
+  }
 
 })(window.mp);
 
