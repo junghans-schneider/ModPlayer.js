@@ -30,7 +30,7 @@
     var iter = { pos: pos, step: step, str: str, list: list },
         numbers = { byte: 1, word: 2, dword: 4 };
 
-    Object.keys(numbers).forEach(function (key, length) {
+    Object.keys(numbers).forEach(function (key) {
       iter[key] = int.bind(null, numbers[key]);
     });
 
