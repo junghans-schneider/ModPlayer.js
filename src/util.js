@@ -46,8 +46,6 @@
 
     var xhr = util.extend(new XMLHttpRequest(), {
 
-      responseType: isJSON ? '' : type, // Chrome doesn't support responseType='json'
-
       onload: function () {
         done(null, isText ? xhr.responseText : (isJSON ? eval('(' + xhr.responseText + ')') : xhr.response));
       },
@@ -59,6 +57,10 @@
     });
 
     xhr.open('GET', url);
+
+    // Set responseType *after* opening the connection:
+    // http://stackoverflow.com/questions/17182816/ajax-php-javascript-error-when-using-post-method
+    xhr.responseType = isJSON ? '' : type; // Chrome doesn't support responseType='json'
     xhr.send();
   };
 
